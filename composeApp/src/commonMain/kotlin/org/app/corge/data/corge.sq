@@ -1,0 +1,192 @@
+import kotlin.Boolean;
+
+CREATE TABLE Message (
+    id                INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    order_index       INTEGER NOT NULL,
+    type              TEXT    NOT NULL,
+    category          TEXT    NOT NULL,
+    text_en           TEXT    NOT NULL,
+    illustration_name TEXT,
+    ritual            TEXT,
+    why_it_matters    TEXT,
+    recommended_time  TEXT,
+    duration_seconds  INTEGER,
+    breathing_related INTEGER AS Boolean DEFAULT 0
+);
+
+selectById:
+SELECT * FROM Message WHERE id = ?;
+
+selectByCategory:
+SELECT * FROM Message
+WHERE category = ?
+ORDER BY order_index;
+
+searchMessages:
+SELECT * FROM Message
+WHERE text_en LIKE '%' || ? || '%';
+
+selectAllMessage:
+SELECT * FROM Message
+ORDER BY order_index;
+
+insertMessage:
+INSERT INTO Message (
+  order_index, type, category, text_en, illustration_name,
+  ritual, why_it_matters, recommended_time, duration_seconds, breathing_related
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+
+CREATE TABLE Session (
+    id                INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    message_id        INTEGER NOT NULL REFERENCES Message(id) ON DELETE CASCADE,
+    date              TEXT    NOT NULL,
+    started_at        TEXT,
+    duration_seconds  INTEGER DEFAULT 0,
+    done              INTEGER AS Boolean DEFAULT 0,
+    note              TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_session_message_date
+ON Session(message_id, date);
+
+
+selectByMessageAndDate:
+SELECT * FROM Session
+WHERE message_id = ? AND date = ?
+LIMIT 1;
+
+selectByDate:
+SELECT * FROM Session WHERE date = ?;
+
+selectRecent:
+SELECT * FROM Session
+ORDER BY date DESC
+LIMIT ?;
+
+selectByMessage:
+SELECT * FROM Session WHERE message_id = ?;
+
+selectAllSession:
+SELECT * FROM Session;
+
+selectMetaByMessageIdsAndDate:
+SELECT message_id, note, done, duration_seconds
+FROM Session
+WHERE date = ?
+  AND message_id IN ?;
+
+selectDoneMessageIds:
+SELECT DISTINCT message_id
+FROM Session
+WHERE done = 1;
+
+insertSession:
+INSERT INTO Session (message_id, date, started_at, duration_seconds, done, note)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateSessionByMessageAndDate:
+UPDATE Session
+SET done = ?, note = ?, duration_seconds = ?
+WHERE message_id = ? AND date = ?;
+
+updateDoneByMessageAndDate:
+UPDATE Session
+SET done = ?
+WHERE message_id = ? AND date = ?;
+
+CREATE TABLE Category (
+    id          TEXT NOT NULL PRIMARY KEY,
+    title       TEXT NOT NULL,
+    description TEXT
+);
+
+selectAllCategory:
+SELECT * FROM Category;
+
+insertCategory:
+INSERT INTO Category (id, title, description)
+VALUES (?, ?, ?);
+
+CREATE TABLE Theme (
+    id         TEXT NOT NULL PRIMARY KEY,
+    name       TEXT NOT NULL,
+    is_paid    INTEGER AS Boolean DEFAULT 0,
+    purchased  INTEGER AS Boolean DEFAULT 0
+);
+
+CREATE TABLE CurrentTheme (
+    id        INTEGER NOT NULL PRIMARY KEY DEFAULT 1,
+    theme_id  TEXT NOT NULL,
+    FOREIGN KEY(theme_id) REFERENCES Theme(id)
+);
+
+selectAllTheme:
+SELECT * FROM Theme;
+
+selectThemeById:
+SELECT * FROM Theme
+WHERE id = ?;
+
+countThemes:
+SELECT COUNT(*) FROM Theme;
+
+getCurrentThemeId:
+SELECT theme_id FROM CurrentTheme
+WHERE id = 1;
+
+insertTheme:
+INSERT OR IGNORE INTO Theme (id, name, is_paid, purchased)
+VALUES (?, ?, ?, ?);
+
+updatePurchased:
+UPDATE Theme
+SET purchased = 1
+WHERE id = ?;
+
+resetPurchased:
+UPDATE Theme
+SET purchased = 0
+WHERE is_paid = 1;
+
+deleteAllThemes:
+DELETE FROM Theme;
+
+upsertCurrentTheme:
+INSERT OR REPLACE INTO CurrentTheme (id, theme_id)
+VALUES (1, ?);
+
+CREATE TABLE Favorite (
+    message_id INTEGER NOT NULL PRIMARY KEY REFERENCES Message(id) ON DELETE CASCADE,
+    added_at   TEXT    NOT NULL
+);
+
+selectAllFavorite:
+SELECT Message.*
+FROM Message
+INNER JOIN Favorite ON Message.id = Favorite.message_id
+ORDER BY Favorite.added_at DESC;
+
+insertFavorite:
+INSERT INTO Favorite (message_id, added_at)
+VALUES (?, ?);
+
+deleteByMessageId:
+DELETE FROM Favorite
+WHERE message_id = ?;
+
+selectByMessageId:
+SELECT * FROM Favorite
+WHERE message_id = ?;
+
+selectLastByMessage:
+SELECT * FROM Session
+WHERE message_id = ?
+ORDER BY date DESC
+LIMIT 1;
+
+deleteAllFavorite:
+DELETE FROM Favorite;
+
+deleteAllSession:
+DELETE FROM Session;
