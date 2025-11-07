@@ -146,10 +146,6 @@ fun HomeScreen(
         value = settingsRepository.isFirstHomeStart()
     }
 
-    LaunchedEffect(isFirstHomeStart) {
-        if (isFirstHomeStart) settingsRepository.setFirstHomeStart(false)
-    }
-
     val bgPainter = when (appTheme) {
         AppTheme.LIGHT    -> painterResource(Res.drawable.bg_settings_light)
         AppTheme.WABI     -> painterResource(Res.drawable.bg_settings_wabi)
@@ -235,7 +231,6 @@ private fun HomeLoading(
     isFirstHomeStart: Boolean
 ) {
     if (isFirstHomeStart) {
-        // 🔹 вариант для самого первого запуска
         val bgPainter = when (appTheme) {
             AppTheme.LIGHT    -> painterResource(Res.drawable.bg_settings_light)
             AppTheme.WABI     -> painterResource(Res.drawable.bg_settings_wabi)

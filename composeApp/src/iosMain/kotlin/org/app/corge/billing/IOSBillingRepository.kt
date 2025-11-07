@@ -5,7 +5,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import org.app.corge.data.model.Theme
@@ -59,36 +58,30 @@ private class BillingDelegate(
         request.start()
     }
 
-    fun purchaseTheme(themeId: String): PurchaseResult =
-        runBlocking {
-            suspendCancellableCoroutine { continuation ->
-                if (themeId == "light") {
-                    continuation.resume(PurchaseResult.Success) {}
-                    return@suspendCancellableCoroutine
-                }
-
-                val product = products[themeId]
-                if (product == null) {
-                    continuation.resume(PurchaseResult.Error("Product not found: $themeId")) {}
-                    return@suspendCancellableCoroutine
-                }
-
-                purchaseContinuations[themeId] = { result -> continuation.resume(result) {} }
-                val payment = SKPayment.paymentWithProduct(product)
-                SKPaymentQueue.defaultQueue().addPayment(payment)
+    suspend fun purchaseTheme(themeId: String): PurchaseResult =
+        suspendCancellableCoroutine { continuation ->
+            if (themeId == "light") {
+                continuation.resume(PurchaseResult.Success) {}
+                return@suspendCancellableCoroutine
             }
+
+            val product = products[themeId]
+            if (product == null) {
+                continuation.resume(PurchaseResult.Error("Product not found: $themeId")) {}
+                return@suspendCancellableCoroutine
+            }
+
+            purchaseContinuations[themeId] = { result -> continuation.resume(result) {} }
+            val payment = SKPayment.paymentWithProduct(product)
+            SKPaymentQueue.defaultQueue().addPayment(payment)
         }
 
-    fun restorePurchases(): PurchaseResult =
-        runBlocking {
-            withTimeoutOrNull(5000L) {
-                suspendCancellableCoroutine<PurchaseResult> { continuation ->
-                    purchaseContinuations["restore"] = { result ->
-                        continuation.resume(result) {}
-                    }
-                    SKPaymentQueue.defaultQueue().restoreCompletedTransactions()
-                }
-            } ?: PurchaseResult.Error("Restore cancelled or timed out")
+    suspend fun restorePurchases(): PurchaseResult =
+        suspendCancellableCoroutine { continuation ->
+            purchaseContinuations["restore"] = { result ->
+                continuation.resume(result) {}
+            }
+            SKPaymentQueue.defaultQueue().restoreCompletedTransactions()
         }
 
     override fun productsRequest(

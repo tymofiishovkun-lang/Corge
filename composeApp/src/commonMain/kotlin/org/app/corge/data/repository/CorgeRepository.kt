@@ -37,7 +37,8 @@ interface CorgeRepository {
         date: String? = null
     )
 
-    suspend fun getSessionByDate(date: String): Session?
+    suspend fun getSessionByDate(date: String): List<Session>
+
     suspend fun getRecentSessions(limit: Int = 10): List<Session>
 
     suspend fun toggleFavorite(messageId: Long)
@@ -130,9 +131,10 @@ class CorgeRepositoryImpl(
         }
     }
 
-    override suspend fun getSessionByDate(date: String): Session? = withContext(Dispatchers.Default) {
-        corgeQueries.selectByDate(date).executeAsOneOrNull()?.toModel()
-    }
+    override suspend fun getSessionByDate(date: String): List<Session> =
+        withContext(Dispatchers.Default) {
+            corgeQueries.selectByDate(date).executeAsList().map { it.toModel() }
+        }
 
     override suspend fun getRecentSessions(limit: Int): List<Session> = withContext(Dispatchers.Default) {
         corgeQueries.selectRecent(limit.toLong()).executeAsList().map { it.toModel() }

@@ -51,7 +51,10 @@ class HomeViewModel(
             todayKey = "${now.date}"
 
             val categories = repo.getAllCategories()
-            val existingToday = repo.getSessionByDate(todayKey)
+
+            val todaySessions = repo.getSessionByDate(todayKey)
+
+            val existingToday = todaySessions.lastOrNull()
             activeMessageId = existingToday?.messageId
 
             delay(800)

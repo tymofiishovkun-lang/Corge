@@ -47,9 +47,10 @@ CREATE TABLE Session (
     note              TEXT
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_session_message_date
-ON Session(message_id, date);
+DROP INDEX IF EXISTS idx_session_message_date;
 
+CREATE INDEX IF NOT EXISTS idx_session_message_date
+ON Session(message_id, date);
 
 selectByMessageAndDate:
 SELECT * FROM Session
@@ -57,10 +58,14 @@ WHERE message_id = ? AND date = ?
 LIMIT 1;
 
 selectByDate:
-SELECT * FROM Session WHERE date = ?;
+SELECT *
+FROM Session
+WHERE date = ?;
+
 
 selectRecent:
 SELECT * FROM Session
+WHERE done = 1
 ORDER BY date DESC
 LIMIT ?;
 

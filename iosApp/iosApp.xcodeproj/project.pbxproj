@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		39211B2F2EB912D3008D2FBF /* ComposeApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 39211B2E2EB912D3008D2FBF /* ComposeApp.framework */; };
-		39211B302EB912D3008D2FBF /* ComposeApp.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 39211B2E2EB912D3008D2FBF /* ComposeApp.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		39211B332EB9144E008D2FBF /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 39211B322EB91430008D2FBF /* libsqlite3.tbd */; };
 		39211B352EB93E24008D2FBF /* calm_loop.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 39211B342EB93E24008D2FBF /* calm_loop.mp3 */; };
+		3948115B2EBDF68700A77862 /* ComposeApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3948115A2EBDF68700A77862 /* ComposeApp.framework */; };
+		3948115C2EBDF68700A77862 /* ComposeApp.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3948115A2EBDF68700A77862 /* ComposeApp.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -20,7 +20,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				39211B302EB912D3008D2FBF /* ComposeApp.framework in Embed Frameworks */,
+				3948115C2EBDF68700A77862 /* ComposeApp.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -28,9 +28,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		39211B2E2EB912D3008D2FBF /* ComposeApp.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ComposeApp.framework; path = "../composeApp/build/xcode-frameworks/ComposeApp.framework"; sourceTree = "<group>"; };
 		39211B322EB91430008D2FBF /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		39211B342EB93E24008D2FBF /* calm_loop.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = calm_loop.mp3; sourceTree = "<group>"; };
+		3948115A2EBDF68700A77862 /* ComposeApp.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ComposeApp.framework; path = "../composeApp/build/xcode-frameworks/ComposeApp.framework"; sourceTree = "<group>"; };
 		50C977C9227C28E1C552CF2B /* Corge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Corge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -66,7 +66,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				39211B332EB9144E008D2FBF /* libsqlite3.tbd in Frameworks */,
-				39211B2F2EB912D3008D2FBF /* ComposeApp.framework in Frameworks */,
+				3948115B2EBDF68700A77862 /* ComposeApp.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,8 +87,8 @@
 		39211B2D2EB912D3008D2FBF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				3948115A2EBDF68700A77862 /* ComposeApp.framework */,
 				39211B322EB91430008D2FBF /* libsqlite3.tbd */,
-				39211B2E2EB912D3008D2FBF /* ComposeApp.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -214,6 +214,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = N4QG4UZ8U9;
 				ENABLE_PREVIEWS = YES;
@@ -224,10 +225,12 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.corgesai.app;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -371,6 +374,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = N4QG4UZ8U9;
 				ENABLE_PREVIEWS = YES;
@@ -381,10 +385,12 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.corgesai.app;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
