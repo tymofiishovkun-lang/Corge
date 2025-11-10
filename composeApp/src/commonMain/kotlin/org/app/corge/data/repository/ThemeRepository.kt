@@ -23,7 +23,6 @@ class ThemeRepositoryImpl(
 ) : ThemeRepository {
 
     private val q = db.corgeQueries
-
     private val _currentThemeId = MutableStateFlow<String?>(null)
     override val currentThemeId: StateFlow<String?> = _currentThemeId
 
@@ -31,14 +30,43 @@ class ThemeRepositoryImpl(
         q.transaction {
             val count = q.countThemes().executeAsOne()
             if (count == 0L) {
-                q.insertTheme(AppTheme.LIGHT.id,    AppTheme.LIGHT.title,    is_paid = false, purchased = true)
-                q.insertTheme(AppTheme.WABI.id,     AppTheme.WABI.title,     is_paid = true,  purchased = false)
-                q.insertTheme(AppTheme.KINTSUGI.id, AppTheme.KINTSUGI.title, is_paid = true,  purchased = false)
+                q.insertTheme(
+                    id = "light",
+                    name = "Light Minimal",
+                    is_paid = false,
+                    purchased = true,
+                    preview_res = "bg_light",
+                    primary_color = 0xFFFFFFFF,
+                    splash_text = "Track easy!",
+                    price = null
+                )
+
+                q.insertTheme(
+                    id = "wabi",
+                    name = "Wabi-Sabi Ink Theme",
+                    is_paid = true,
+                    purchased = false,
+                    preview_res = "bg_wabi",
+                    primary_color = 0xFF000000,
+                    splash_text = "Calm imperfection.",
+                    price = 1.99
+                )
+
+                q.insertTheme(
+                    id = "kintsugi",
+                    name = "Kintsugi Night Theme",
+                    is_paid = true,
+                    purchased = false,
+                    preview_res = "bg_kintsugi",
+                    primary_color = 0xFFFFD700,
+                    splash_text = "Beauty in repair.",
+                    price = 1.99
+                )
             }
 
             val cur = q.getCurrentThemeId().executeAsOneOrNull()
             if (cur == null) {
-                q.upsertCurrentTheme(AppTheme.LIGHT.id)
+                q.upsertCurrentTheme("light")
             }
         }
 
@@ -51,7 +79,11 @@ class ThemeRepositoryImpl(
                 id = row.id,
                 name = row.name,
                 isPaid = row.is_paid == true,
-                purchased = row.purchased == true
+                purchased = row.purchased == true,
+                previewRes = row.preview_res ?: "",
+                primaryColor = row.primary_color ?: 0L,
+                splashText = row.splash_text ?: "",
+                price = row.price
             )
         }
     }
@@ -69,7 +101,7 @@ class ThemeRepositoryImpl(
 
     override suspend fun markThemePurchased(themeId: String) = withContext(Dispatchers.Default) {
         q.updatePurchased(themeId)
-         q.upsertCurrentTheme(themeId)
-         _currentThemeId.value = themeId
+        q.upsertCurrentTheme(themeId)
+        _currentThemeId.value = themeId
     }
 }

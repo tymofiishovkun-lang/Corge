@@ -46,7 +46,11 @@ fun ThemeDb.toModel() = Theme(
     id = id,
     name = name,
     isPaid = is_paid == true,
-    purchased = purchased == true
+    purchased = purchased == true,
+    previewRes = preview_res ?: "",
+    primaryColor = primary_color ?: 0L,
+    splashText = splash_text ?: "",
+    price = price
 )
 
 fun FavoriteDb.toModel() = Favorite(

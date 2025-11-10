@@ -26,14 +26,14 @@ val viewModule = module {
     single {
         SettingsViewModel(
             themeRepo = get(),
-            billing = get(),
+//            billing = get(),
             soundPrefs = getOrNull(),
             soundController = get(),
             buildExport = get(),
             pdfExporter = get(),
             exportViewer = get(),
             repo = get(),
-            settings = get()
+//            settings = get()
         )
     }
 }
