@@ -74,233 +74,15 @@ class SoundPrefsImpl(
     }
 }
 
-class SettingsViewModel(
-    private val themeRepo: ThemeRepository,
-    private val soundPrefs: SoundPrefs? = null,
-    private val soundController: SoundController,
-    private val loopAssetName: String = "calm_loop.mp3",
-    private val buildExport: BuildExportPayloadUseCase,
-    private val pdfExporter: PdfExporter,
-    private val exportViewer: ExportViewer,
-    private val repo: CorgeRepository
-) : ViewModel() {
-
-    var ui by mutableStateOf(SettingsUi())
-        private set
-
-    fun load() {
-        viewModelScope.launch {
-            ui = ui.copy(loading = true)
-
-            withContext(Dispatchers.Default) { themeRepo.initializeThemes() }
-
-            val (dbThemes, currentId) = withContext(Dispatchers.Default) {
-                val list = themeRepo.getAllThemes()
-                val cur  = themeRepo.getCurrentThemeId() ?: AppTheme.LIGHT.id
-                list to cur
-            }
-            val uiThemes = AppTheme.entries.map { app ->
-                val row = dbThemes.firstOrNull { it.id == app.id }
-                val isPaid = row?.isPaid == true
-                val purchased = row?.purchased == true
-                ThemeUi(
-                    theme = app,
-                    locked = isPaid && !purchased,
-                    price = if (isPaid) "$1.99" else null,
-                    selected = (currentId == app.id)
-                )
-            }
-
-            val sound = soundPrefs?.get()
-            if (sound == true && !soundController.isPlaying) {
-                runCatching { soundController.startLoop(loopAssetName) }
-            }
-            if (sound != true && soundController.isPlaying) {
-                runCatching { soundController.stop() }
-            }
-
-            ui = ui.copy(
-                loading = false,
-                themes = uiThemes,
-                soundOnStart = (sound == true),
-                showPaywallFor = null
-            )
-        }
-    }
-
-    fun selectTheme(t: ThemeUi) {
-        if (t.locked) {
-            ui = ui.copy(showPaywallFor = t)
-        } else {
-            applyTheme(t.theme)
-        }
-    }
-
-    private fun applyTheme(theme: AppTheme) {
-        viewModelScope.launch {
-            themeRepo.setCurrentTheme(theme.id)
-            ui = ui.copy(
-                themes = ui.themes.map { it.copy(selected = it.theme == theme) },
-                showPaywallFor = null
-            )
-        }
-    }
-
-    fun export(periodDays: Int = 30) {
-        viewModelScope.launch {
-            ui = ui.copy(exporting = true, exportLocation = null, exportError = null)
-
-            val mark = TimeSource.Monotonic.markNow()
-
-            val res = runCatching {
-                val payload = buildExport(periodDays)
-                pdfExporter.export(payload)
-            }.getOrElse { ExportResult.Error(it.message ?: "Unknown error") }
-
-            val elapsedMs = mark.elapsedNow().inWholeMilliseconds
-            val minMs = 2_000L
-            if (elapsedMs < minMs) delay(minMs - elapsedMs)
-
-            when (res) {
-                is ExportResult.Ok -> {
-                    val name = extractFileName(res.location)
-                    ui = ui.copy(
-                        exporting = false,
-                        exportLocation = res.location,
-                        exportFileName = name,
-                        exportError = null
-                    )
-                }
-                is ExportResult.Error -> {
-                    ui = ui.copy(exporting = false, exportError = res.message)
-                }
-            }
-        }
-    }
-
-    fun extractFileName(location: String): String =
-        location.substringAfterLast('/').ifEmpty { "Stats.pdf" }
-
-    fun openExport() {
-        ui.exportLocation?.let { loc ->
-            runCatching { exportViewer.view(loc) }
-        }
-    }
-
-    fun dismissExportDialog() {
-        ui = ui.copy(exportLocation = null, exportError = null)
-    }
-
-    fun purchaseSelected() {
-        val t = ui.showPaywallFor ?: return
-        viewModelScope.launch {
-            ui = ui.copy(loading = true)
-
-            delay(600)
-
-            withContext(Dispatchers.Default) {
-                themeRepo.markThemePurchased(t.theme.id)
-                themeRepo.setCurrentTheme(t.theme.id)
-            }
-
-            reloadThemesAndClosePaywall()
-        }
-    }
-
-    fun restorePurchases() {
-        viewModelScope.launch {
-            ui = ui.copy(loading = true)
-            delay(300)
-            reloadThemesAndClosePaywall()
-        }
-    }
-
-    private suspend fun reloadThemesAndClosePaywall() {
-        val dbThemes = withContext(Dispatchers.Default) { themeRepo.getAllThemes() }
-        val currentId = withContext(Dispatchers.Default) { themeRepo.getCurrentThemeId() } ?: AppTheme.LIGHT.id
-
-        val uiThemes = AppTheme.entries.map { app ->
-            val fromDb = dbThemes.firstOrNull { it.id == app.id }
-            val isPaid = fromDb?.isPaid == true
-            val purchased = fromDb?.purchased == true
-            ThemeUi(
-                theme = app,
-                locked = isPaid && !purchased,
-                price = if (isPaid) "$1.99" else null,
-                selected = (currentId == app.id)
-            )
-        }
-        ui = ui.copy(loading = false, themes = uiThemes, showPaywallFor = null)
-    }
-
-    fun toggleSound(enabled: Boolean) {
-        ui = ui.copy(soundOnStart = enabled)
-        viewModelScope.launch {
-            soundPrefs?.set(enabled)
-            withContext(Dispatchers.Main.immediate) {
-                if (enabled) {
-                    if (!soundController.isPlaying) runCatching { soundController.startLoop(loopAssetName) }
-                } else {
-                    if (soundController.isPlaying) runCatching { soundController.stop() }
-                }
-            }
-        }
-    }
-
-    fun dismissPaywall() { ui = ui.copy(showPaywallFor = null) }
-
-    fun askReset() { ui = ui.copy(showResetAlert = true) }
-    fun cancelReset() { ui = ui.copy(showResetAlert = false, showResetConfirm = false) }
-    fun confirmResetFirst() { ui = ui.copy(showResetAlert = false, showResetConfirm = true) }
-    fun confirmResetSecond() {
-        viewModelScope.launch {
-            ui = ui.copy(loading = true)
-
-            withContext(Dispatchers.Default) { repo.resetProgress() }
-
-            val dbThemes = withContext(Dispatchers.Default) { themeRepo.getAllThemes() }
-            val currentId = withContext(Dispatchers.Default) { themeRepo.getCurrentThemeId() } ?: AppTheme.LIGHT.id
-            val uiThemes = AppTheme.entries.map { app ->
-                val fromDb = dbThemes.firstOrNull { it.id == app.id }
-                val isPaid = fromDb?.isPaid == true
-                val purchased = fromDb?.purchased == true
-                ThemeUi(
-                    theme = app,
-                    locked = isPaid && !purchased,
-                    price = if (isPaid) "$1.99" else null,
-                    selected = (currentId == app.id)
-                )
-            }
-
-            ui = ui.copy(
-                loading = false,
-                showResetConfirm = false,
-                showResetAlert = false,
-                themes = uiThemes
-            )
-        }
-    }
-}
-
-@Composable
-fun settingsBackgroundFor(theme: AppTheme) = when (theme) {
-    AppTheme.LIGHT    -> painterResource(Res.drawable.bg_settings_light)
-    AppTheme.WABI     -> painterResource(Res.drawable.bg_settings_wabi)
-    AppTheme.KINTSUGI -> painterResource(Res.drawable.bg_settings_kintsugi)
-}
-
-
 //class SettingsViewModel(
 //    private val themeRepo: ThemeRepository,
-//    private val billing: BillingRepository,
 //    private val soundPrefs: SoundPrefs? = null,
 //    private val soundController: SoundController,
 //    private val loopAssetName: String = "calm_loop.mp3",
 //    private val buildExport: BuildExportPayloadUseCase,
 //    private val pdfExporter: PdfExporter,
 //    private val exportViewer: ExportViewer,
-//    private val repo: CorgeRepository,
-//    private val settings: SettingsRepository
+//    private val repo: CorgeRepository
 //) : ViewModel() {
 //
 //    var ui by mutableStateOf(SettingsUi())
@@ -404,6 +186,7 @@ fun settingsBackgroundFor(theme: AppTheme) = when (theme) {
 //            runCatching { exportViewer.view(loc) }
 //        }
 //    }
+//
 //    fun dismissExportDialog() {
 //        ui = ui.copy(exportLocation = null, exportError = null)
 //    }
@@ -412,36 +195,30 @@ fun settingsBackgroundFor(theme: AppTheme) = when (theme) {
 //        val t = ui.showPaywallFor ?: return
 //        viewModelScope.launch {
 //            ui = ui.copy(loading = true)
-//            when (val res = billing.purchaseTheme(t.theme.id)) {
-//                is PurchaseResult.Success -> {
-//                    reloadAfterPurchase()
-//                }
-//                is PurchaseResult.Failure -> {
-//                    ui = ui.copy(loading = false, showPaywallFor = null)
-//                }
-//                is PurchaseResult.Error -> {
-//                    ui = ui.copy(loading = false, showPaywallFor = null)
-//                }
+//
+//            delay(600)
+//
+//            withContext(Dispatchers.Default) {
+//                themeRepo.markThemePurchased(t.theme.id)
+//                themeRepo.setCurrentTheme(t.theme.id)
 //            }
+//
+//            reloadThemesAndClosePaywall()
 //        }
 //    }
 //
 //    fun restorePurchases() {
 //        viewModelScope.launch {
 //            ui = ui.copy(loading = true)
-//            when (billing.restorePurchases()) {
-//                is PurchaseResult.Success,
-//                is PurchaseResult.Failure,
-//                is PurchaseResult.Error -> {
-//                    reloadAfterPurchase()
-//                }
-//            }
+//            delay(300)
+//            reloadThemesAndClosePaywall()
 //        }
 //    }
 //
-//    private suspend fun reloadAfterPurchase() {
-//        val dbThemes = themeRepo.getAllThemes()
-//        val currentId = themeRepo.getCurrentThemeId() ?: AppTheme.LIGHT.id
+//    private suspend fun reloadThemesAndClosePaywall() {
+//        val dbThemes = withContext(Dispatchers.Default) { themeRepo.getAllThemes() }
+//        val currentId = withContext(Dispatchers.Default) { themeRepo.getCurrentThemeId() } ?: AppTheme.LIGHT.id
+//
 //        val uiThemes = AppTheme.entries.map { app ->
 //            val fromDb = dbThemes.firstOrNull { it.id == app.id }
 //            val isPaid = fromDb?.isPaid == true
@@ -458,25 +235,20 @@ fun settingsBackgroundFor(theme: AppTheme) = when (theme) {
 //
 //    fun toggleSound(enabled: Boolean) {
 //        ui = ui.copy(soundOnStart = enabled)
-//
 //        viewModelScope.launch {
 //            soundPrefs?.set(enabled)
-//
 //            withContext(Dispatchers.Main.immediate) {
 //                if (enabled) {
-//                    if (!soundController.isPlaying) {
-//                        runCatching { soundController.startLoop(loopAssetName) }
-//                    }
+//                    if (!soundController.isPlaying) runCatching { soundController.startLoop(loopAssetName) }
 //                } else {
-//                    if (soundController.isPlaying) {
-//                        runCatching { soundController.stop() }
-//                    }
+//                    if (soundController.isPlaying) runCatching { soundController.stop() }
 //                }
 //            }
 //        }
 //    }
 //
 //    fun dismissPaywall() { ui = ui.copy(showPaywallFor = null) }
+//
 //    fun askReset() { ui = ui.copy(showResetAlert = true) }
 //    fun cancelReset() { ui = ui.copy(showResetAlert = false, showResetConfirm = false) }
 //    fun confirmResetFirst() { ui = ui.copy(showResetAlert = false, showResetConfirm = true) }
@@ -484,11 +256,10 @@ fun settingsBackgroundFor(theme: AppTheme) = when (theme) {
 //        viewModelScope.launch {
 //            ui = ui.copy(loading = true)
 //
-//            repo.resetProgress()
-//            settings.clearRecentSearches()
+//            withContext(Dispatchers.Default) { repo.resetProgress() }
 //
-//            val dbThemes = themeRepo.getAllThemes()
-//            val currentId = themeRepo.getCurrentThemeId() ?: AppTheme.LIGHT.id
+//            val dbThemes = withContext(Dispatchers.Default) { themeRepo.getAllThemes() }
+//            val currentId = withContext(Dispatchers.Default) { themeRepo.getCurrentThemeId() } ?: AppTheme.LIGHT.id
 //            val uiThemes = AppTheme.entries.map { app ->
 //                val fromDb = dbThemes.firstOrNull { it.id == app.id }
 //                val isPaid = fromDb?.isPaid == true
@@ -510,3 +281,232 @@ fun settingsBackgroundFor(theme: AppTheme) = when (theme) {
 //        }
 //    }
 //}
+
+@Composable
+fun settingsBackgroundFor(theme: AppTheme) = when (theme) {
+    AppTheme.LIGHT    -> painterResource(Res.drawable.bg_settings_light)
+    AppTheme.WABI     -> painterResource(Res.drawable.bg_settings_wabi)
+    AppTheme.KINTSUGI -> painterResource(Res.drawable.bg_settings_kintsugi)
+}
+
+
+class SettingsViewModel(
+    private val themeRepo: ThemeRepository,
+    private val billing: BillingRepository,
+    private val soundPrefs: SoundPrefs? = null,
+    private val soundController: SoundController,
+    private val loopAssetName: String = "calm_loop.mp3",
+    private val buildExport: BuildExportPayloadUseCase,
+    private val pdfExporter: PdfExporter,
+    private val exportViewer: ExportViewer,
+    private val repo: CorgeRepository,
+    private val settings: SettingsRepository
+) : ViewModel() {
+
+    var ui by mutableStateOf(SettingsUi())
+        private set
+
+    fun load() {
+        viewModelScope.launch {
+            ui = ui.copy(loading = true)
+
+            withContext(Dispatchers.Default) { themeRepo.initializeThemes() }
+
+            val (dbThemes, currentId) = withContext(Dispatchers.Default) {
+                val list = themeRepo.getAllThemes()
+                val cur  = themeRepo.getCurrentThemeId() ?: AppTheme.LIGHT.id
+                list to cur
+            }
+            val uiThemes = AppTheme.entries.map { app ->
+                val row = dbThemes.firstOrNull { it.id == app.id }
+                val isPaid = row?.isPaid == true
+                val purchased = row?.purchased == true
+                ThemeUi(
+                    theme = app,
+                    locked = isPaid && !purchased,
+                    price = if (isPaid) "$1.99" else null,
+                    selected = (currentId == app.id)
+                )
+            }
+
+            val sound = soundPrefs?.get()
+            if (sound == true && !soundController.isPlaying) {
+                runCatching { soundController.startLoop(loopAssetName) }
+            }
+            if (sound != true && soundController.isPlaying) {
+                runCatching { soundController.stop() }
+            }
+
+            ui = ui.copy(
+                loading = false,
+                themes = uiThemes,
+                soundOnStart = (sound == true),
+                showPaywallFor = null
+            )
+        }
+    }
+
+    fun selectTheme(t: ThemeUi) {
+        if (t.locked) {
+            ui = ui.copy(showPaywallFor = t)
+        } else {
+            applyTheme(t.theme)
+        }
+    }
+
+    private fun applyTheme(theme: AppTheme) {
+        viewModelScope.launch {
+            themeRepo.setCurrentTheme(theme.id)
+            ui = ui.copy(
+                themes = ui.themes.map { it.copy(selected = it.theme == theme) },
+                showPaywallFor = null
+            )
+        }
+    }
+
+    fun export(periodDays: Int = 30) {
+        viewModelScope.launch {
+            ui = ui.copy(exporting = true, exportLocation = null, exportError = null)
+
+            val mark = TimeSource.Monotonic.markNow()
+
+            val res = runCatching {
+                val payload = buildExport(periodDays)
+                pdfExporter.export(payload)
+            }.getOrElse { ExportResult.Error(it.message ?: "Unknown error") }
+
+            val elapsedMs = mark.elapsedNow().inWholeMilliseconds
+            val minMs = 2_000L
+            if (elapsedMs < minMs) delay(minMs - elapsedMs)
+
+            when (res) {
+                is ExportResult.Ok -> {
+                    val name = extractFileName(res.location)
+                    ui = ui.copy(
+                        exporting = false,
+                        exportLocation = res.location,
+                        exportFileName = name,
+                        exportError = null
+                    )
+                }
+                is ExportResult.Error -> {
+                    ui = ui.copy(exporting = false, exportError = res.message)
+                }
+            }
+        }
+    }
+
+    fun extractFileName(location: String): String =
+        location.substringAfterLast('/').ifEmpty { "Stats.pdf" }
+
+    fun openExport() {
+        ui.exportLocation?.let { loc ->
+            runCatching { exportViewer.view(loc) }
+        }
+    }
+    fun dismissExportDialog() {
+        ui = ui.copy(exportLocation = null, exportError = null)
+    }
+
+    fun purchaseSelected() {
+        val t = ui.showPaywallFor ?: return
+        viewModelScope.launch {
+            ui = ui.copy(loading = true)
+            when (val res = billing.purchaseTheme(t.theme.id)) {
+                is PurchaseResult.Success -> {
+                    reloadAfterPurchase()
+                }
+                is PurchaseResult.Failure -> {
+                    ui = ui.copy(loading = false, showPaywallFor = null)
+                }
+                is PurchaseResult.Error -> {
+                    ui = ui.copy(loading = false, showPaywallFor = null)
+                }
+            }
+        }
+    }
+
+    fun restorePurchases() {
+        viewModelScope.launch {
+            ui = ui.copy(loading = true)
+            when (billing.restorePurchases()) {
+                is PurchaseResult.Success,
+                is PurchaseResult.Failure,
+                is PurchaseResult.Error -> {
+                    reloadAfterPurchase()
+                }
+            }
+        }
+    }
+
+    private suspend fun reloadAfterPurchase() {
+        val dbThemes = themeRepo.getAllThemes()
+        val currentId = themeRepo.getCurrentThemeId() ?: AppTheme.LIGHT.id
+        val uiThemes = AppTheme.entries.map { app ->
+            val fromDb = dbThemes.firstOrNull { it.id == app.id }
+            val isPaid = fromDb?.isPaid == true
+            val purchased = fromDb?.purchased == true
+            ThemeUi(
+                theme = app,
+                locked = isPaid && !purchased,
+                price = if (isPaid) "$1.99" else null,
+                selected = (currentId == app.id)
+            )
+        }
+        ui = ui.copy(loading = false, themes = uiThemes, showPaywallFor = null)
+    }
+
+    fun toggleSound(enabled: Boolean) {
+        ui = ui.copy(soundOnStart = enabled)
+
+        viewModelScope.launch {
+            soundPrefs?.set(enabled)
+
+            withContext(Dispatchers.Main.immediate) {
+                if (enabled) {
+                    if (!soundController.isPlaying) {
+                        runCatching { soundController.startLoop(loopAssetName) }
+                    }
+                } else {
+                    if (soundController.isPlaying) {
+                        runCatching { soundController.stop() }
+                    }
+                }
+            }
+        }
+    }
+
+    fun dismissPaywall() { ui = ui.copy(showPaywallFor = null) }
+    fun askReset() { ui = ui.copy(showResetAlert = true) }
+    fun cancelReset() { ui = ui.copy(showResetAlert = false, showResetConfirm = false) }
+    fun confirmResetFirst() { ui = ui.copy(showResetAlert = false, showResetConfirm = true) }
+    fun confirmResetSecond() {
+        viewModelScope.launch {
+            ui = ui.copy(loading = true)
+
+            repo.resetProgress()
+            settings.clearRecentSearches()
+
+            val dbThemes = themeRepo.getAllThemes()
+            val currentId = themeRepo.getCurrentThemeId() ?: AppTheme.LIGHT.id
+            val uiThemes = AppTheme.entries.map { app ->
+                val fromDb = dbThemes.firstOrNull { it.id == app.id }
+                val isPaid = fromDb?.isPaid == true
+                val purchased = fromDb?.purchased == true
+                ThemeUi(
+                    theme = app,
+                    locked = isPaid && !purchased,
+                    price = if (isPaid) "$1.99" else null,
+                    selected = (currentId == app.id)
+                )
+            }
+
+            ui = ui.copy(
+                loading = false,
+                showResetConfirm = false,
+                showResetAlert = false,
+                themes = uiThemes
+            )
+        }
+    }
+}

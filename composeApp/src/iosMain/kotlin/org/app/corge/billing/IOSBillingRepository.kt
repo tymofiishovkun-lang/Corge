@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
@@ -81,7 +82,15 @@ private class BillingDelegate(
             purchaseContinuations["restore"] = { result ->
                 continuation.resume(result) {}
             }
+
             SKPaymentQueue.defaultQueue().restoreCompletedTransactions()
+
+            scope.launch {
+                delay(4000)
+                if (purchaseContinuations.containsKey("restore")) {
+                    purchaseContinuations.remove("restore")?.invoke(PurchaseResult.Failure)
+                }
+            }
         }
 
     override fun productsRequest(
