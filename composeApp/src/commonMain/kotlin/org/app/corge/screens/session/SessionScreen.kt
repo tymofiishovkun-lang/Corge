@@ -73,6 +73,9 @@ import corge.composeapp.generated.resources.ic_not_done
 import corge.composeapp.generated.resources.ic_start_sound
 import corge.composeapp.generated.resources.ic_steps
 import corge.composeapp.generated.resources.ic_stop_sound
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.app.corge.data.model.Message
 import org.app.corge.data.model.MessageType
 import org.app.corge.data.repository.ThemeRepository
@@ -92,7 +95,7 @@ fun SessionScreen(
     vm: SessionViewModel = koinInject(),
     themeRepo: ThemeRepository = koinInject()
 ) {
-    LaunchedEffect(messageId) { vm.load(messageId) }
+    LaunchedEffect(messageId) { vm.load(messageId, Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
     val ui = vm.ui
 
     val currentThemeId by themeRepo.currentThemeId.collectAsState(initial = AppTheme.LIGHT.id)

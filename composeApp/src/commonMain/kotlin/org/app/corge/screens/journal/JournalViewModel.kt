@@ -152,11 +152,30 @@ class JournalViewModel(
 
     private fun setDone(date: String, msgId: Long, newValue: Boolean) {
         viewModelScope.launch {
-            repo.setSessionDoneByMessageAndDate(msgId, date, newValue)
-            mutateItem(msgId) { it.copy(session = it.session.copy(done = newValue)) }
+            if (newValue) {
+                repo.setSessionDoneByMessageAndDate(msgId, date, true)
+            } else {
+                repo.updateSessionByMessageAndDate(
+                    messageId = msgId,
+                    date = date,
+                    done = false,
+                    duration = 0,
+                    note = null
+                )
+            }
+
+            mutateItem(msgId) {
+                it.copy(
+                    session = it.session.copy(
+                        done = newValue,
+                        durationSeconds = if (newValue) it.session.durationSeconds else 0,
+                        note = if (newValue) it.session.note else null
+                    )
+                )
+            }
+            ui = ui.copy(groups = ui.groups.toMap())
         }
     }
-
     private fun applyFilters() {
         val selected = ui.selectedCats.map { it.lowercase() }.toSet()
 

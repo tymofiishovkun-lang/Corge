@@ -15,6 +15,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.app.corge.data.model.Category
 import org.app.corge.data.model.Message
 import org.app.corge.data.repository.CorgeRepository
+import org.app.corge.data.repository.SettingsRepository
 import org.app.corge.sound.SoundController
 import org.app.corge.sound.TtsController
 import kotlin.random.Random
@@ -22,7 +23,8 @@ import kotlin.random.Random
 class HomeViewModel(
     private val repo: CorgeRepository,
     private val sound: SoundController,
-    private val tts: TtsController
+    private val tts: TtsController,
+    private val settings: SettingsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -52,10 +54,36 @@ class HomeViewModel(
             val existingToday = repo.getSessionByDate(todayKey)
             activeMessageId = existingToday?.messageId
 
-            delay(1000)
+            delay(800)
 
-            startObserving(categories, now)
+            val isFirstHomeStart = settings.isFirstHomeStart()
+            if (isFirstHomeStart) {
+                _uiState.value = HomeUiState.Empty
+                return@launch
+            }
+
+            if (existingToday == null) {
+                createNewDailyMessage(categories, now)
+            } else {
+                startObserving(categories, now)
+            }
         }
+    }
+
+    private suspend fun createNewDailyMessage(categories: List<Category>, now: LocalDateTime) {
+        val all = repo.getAllMessages()
+        val seed = now.date.dayOfYear
+        val msg = all.shuffled(kotlin.random.Random(seed)).firstOrNull() ?: return
+
+        repo.insertSession(
+            messageId = msg.id,
+            note = null,
+            done = false,
+            duration = 0
+        )
+
+        activeMessageId = msg.id
+        startObserving(categories, now)
     }
 
     private fun startObserving(categories: List<Category>, now: LocalDateTime) {
@@ -101,8 +129,9 @@ class HomeViewModel(
 
     fun startFirstSession() {
         viewModelScope.launch {
-            repo.prepopulateIfNeeded()
+            settings.setFirstHomeStart(false)
 
+            repo.prepopulateIfNeeded()
             val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             todayKey = "${now.date}"
 

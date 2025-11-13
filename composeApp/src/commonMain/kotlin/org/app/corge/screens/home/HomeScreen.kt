@@ -85,8 +85,10 @@ import corge.composeapp.generated.resources.ic_start_sound
 import corge.composeapp.generated.resources.ic_stats
 import corge.composeapp.generated.resources.ic_stats_kintsugi
 import corge.composeapp.generated.resources.ic_stop_sound
+import kotlinx.coroutines.delay
 import org.app.corge.data.model.Category
 import org.app.corge.data.model.MessageType
+import org.app.corge.data.repository.SettingsRepository
 import org.app.corge.data.repository.ThemeRepository
 import org.app.corge.screens.bottomBar.BottomBar
 import org.app.corge.screens.settings.AppTheme
@@ -132,6 +134,7 @@ fun HomeScreen(
     onOpenCategory: (String) -> Unit = {},
     onOpenExplore: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    settingsRepository: SettingsRepository,
     viewModel: HomeViewModel = koinInject(),
     themeRepo: ThemeRepository = koinInject()
 ) {
@@ -139,6 +142,13 @@ fun HomeScreen(
 
     val currentThemeId by themeRepo.currentThemeId.collectAsState(initial = AppTheme.LIGHT.id)
     val appTheme = AppTheme.entries.firstOrNull { it.id == currentThemeId } ?: AppTheme.LIGHT
+    val isFirstHomeStart by produceState(initialValue = false) {
+        value = settingsRepository.isFirstHomeStart()
+    }
+
+    LaunchedEffect(isFirstHomeStart) {
+        if (isFirstHomeStart) settingsRepository.setFirstHomeStart(false)
+    }
 
     val bgPainter = when (appTheme) {
         AppTheme.LIGHT    -> painterResource(Res.drawable.bg_settings_light)
@@ -199,7 +209,7 @@ fun HomeScreen(
                     .padding(horizontal = HomeDimens.ScreenPad)
             ) { state ->
                 when (state) {
-                    is HomeUiState.Loading -> HomeLoading(appTheme)
+                    is HomeUiState.Loading -> HomeLoading(appTheme, isFirstHomeStart)
                     is HomeUiState.Empty -> HomeEmpty(onStart = { viewModel.startFirstSession() }, appTheme)
                     is HomeUiState.Loaded -> HomeContent(
                         state = state,
@@ -220,61 +230,114 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeLoading(theme: AppTheme) {
-    val bgPainter = when (theme) {
-        AppTheme.LIGHT -> painterResource(Res.drawable.bg_home_light_loading)
-        AppTheme.WABI -> painterResource(Res.drawable.bg_home_wabi_loading)
-        AppTheme.KINTSUGI -> painterResource(Res.drawable.bg_home_kintsugi_loading)
-    }
+private fun HomeLoading(
+    appTheme: AppTheme,
+    isFirstHomeStart: Boolean
+) {
+    if (isFirstHomeStart) {
+        // 🔹 вариант для самого первого запуска
+        val bgPainter = when (appTheme) {
+            AppTheme.LIGHT    -> painterResource(Res.drawable.bg_settings_light)
+            AppTheme.WABI     -> painterResource(Res.drawable.bg_settings_wabi)
+            AppTheme.KINTSUGI -> painterResource(Res.drawable.bg_settings_kintsugi)
+        }
 
-    var visible by remember { mutableStateOf(false) }
+        var showLoader by remember { mutableStateOf(true) }
 
-    val alpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
-        label = "bgFade"
-    )
+        LaunchedEffect(Unit) {
+            delay(2000)
+            showLoader = false
+        }
 
-    LaunchedEffect(Unit) {
-        visible = true
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Transparent)
-    ) {
-        Image(
-            painter = bgPainter,
-            contentDescription = null,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .alpha(alpha),
-            contentScale = ContentScale.Crop
+                .background(Color.Transparent)
+        ) {
+            Image(
+                painter = bgPainter,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize()
+            )
+
+            if (showLoader) {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = HomePalette.Primary,
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+            }
+        }
+    } else {
+        val bgPainter = when (appTheme) {
+            AppTheme.LIGHT    -> painterResource(Res.drawable.bg_home_light_loading)
+            AppTheme.WABI     -> painterResource(Res.drawable.bg_home_wabi_loading)
+            AppTheme.KINTSUGI -> painterResource(Res.drawable.bg_home_kintsugi_loading)
+        }
+
+        var visible by remember { mutableStateOf(false) }
+
+        val alpha by animateFloatAsState(
+            targetValue = if (visible) 1f else 0f,
+            animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+            label = "bgFade"
         )
 
-        Column(
-            Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+        LaunchedEffect(Unit) {
+            visible = true
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Transparent)
         ) {
-            Spacer(Modifier.height(8.dp))
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(HomeDimens.BigCardHeight)
-                    .clip(RoundedCornerShape(HomeDimens.BigCardRadius))
-                    .background(HomePalette.CardBg.copy(alpha = .6f))
-                    .border(1.dp, HomePalette.CardStroke, RoundedCornerShape(HomeDimens.BigCardRadius))
+            Image(
+                painter = bgPainter,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(alpha),
+                contentScale = ContentScale.Crop
             )
-            Spacer(Modifier.height(16.dp))
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(HomeDimens.AddNoteHeight)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(HomePalette.ButtonBg.copy(alpha = .6f))
-                    .border(1.dp, HomePalette.ButtonStroke, RoundedCornerShape(12.dp))
-            )
+
+            Column(
+                Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(HomeDimens.BigCardHeight)
+                        .clip(RoundedCornerShape(HomeDimens.BigCardRadius))
+                        .background(HomePalette.CardBg.copy(alpha = .6f))
+                        .border(
+                            1.dp,
+                            HomePalette.CardStroke,
+                            RoundedCornerShape(HomeDimens.BigCardRadius)
+                        )
+                )
+                Spacer(Modifier.height(16.dp))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(HomeDimens.AddNoteHeight)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(HomePalette.ButtonBg.copy(alpha = .6f))
+                        .border(
+                            1.dp,
+                            HomePalette.ButtonStroke,
+                            RoundedCornerShape(12.dp)
+                        )
+                )
+            }
         }
     }
 }

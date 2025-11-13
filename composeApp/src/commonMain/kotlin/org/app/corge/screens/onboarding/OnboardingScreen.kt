@@ -8,6 +8,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -71,7 +72,7 @@ fun OnboardingScreen(
 
     LaunchedEffect(Unit) { startAnimation = true }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer {
@@ -79,6 +80,25 @@ fun OnboardingScreen(
                 this.translationY = translateY.toPx()
             }
     ) {
+        val screenHeight = maxHeight
+
+        val buttonWidth = when {
+            screenHeight < 650.dp -> 250.dp
+            screenHeight < 800.dp -> 300.dp
+            else -> 350.dp
+        }
+        val buttonHeight = when {
+            screenHeight < 650.dp -> 56.dp
+            screenHeight < 800.dp -> 70.dp
+            else -> 80.dp
+        }
+
+        val bottomPadding = when {
+            screenHeight < 650.dp -> 60.dp
+            screenHeight < 800.dp -> 140.dp
+            else -> 220.dp
+        }
+
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize().clipToBounds()
@@ -107,8 +127,8 @@ fun OnboardingScreen(
             contentDescription = "Skip",
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 70.dp, end = 2.dp)
-                .size(width = 120.dp, height = 50.dp)
+                .padding(top = screenHeight * 0.08f, end = 8.dp)
+                .size(width = 110.dp, height = 44.dp)
                 .clickable {
                     splashViewModel.markLaunched()
                     onNavigate(Screen.Home.route)
@@ -128,8 +148,8 @@ fun OnboardingScreen(
             contentDescription = if (isLastPage) "Get Started" else "Continue",
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 300.dp)
-                .size(width = 350.dp, height = 80.dp)
+                .padding(bottom = bottomPadding)
+                .size(width = buttonWidth, height = buttonHeight)
                 .graphicsLayer {
                     this.alpha = buttonAlpha
                     this.scaleX = if (isLastPage) 1.05f else 1f
@@ -154,4 +174,3 @@ fun OnboardingScreen(
         )
     }
 }
-

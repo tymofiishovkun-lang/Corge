@@ -12,10 +12,13 @@ interface SettingsRepository {
     suspend fun addRecentSearch(query: String)
     suspend fun clearRecentSearches()
     fun recentSearchesFlow(): Flow<List<String>>
+    suspend fun isFirstHomeStart(): Boolean
+    suspend fun setFirstHomeStart(value: Boolean)
 }
 
 private const val KEY_FIRST_LAUNCH = "first_launch"
 private const val KEY_RECENTS = "recent_searches_v1"
+private const val KEY_HOME_FIRST_START = "home_first_start"
 private const val SEP = "\u001F"
 private const val ESC = "\\"
 
@@ -82,4 +85,11 @@ class SettingsRepositoryImpl(
     }
 
     override fun recentSearchesFlow(): Flow<List<String>> = _recents
+
+    override suspend fun isFirstHomeStart(): Boolean =
+        settings.getBoolean(KEY_HOME_FIRST_START, true)
+
+    override suspend fun setFirstHomeStart(value: Boolean) {
+        settings.putBoolean(KEY_HOME_FIRST_START, value)
+    }
 }

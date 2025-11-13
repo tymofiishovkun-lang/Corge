@@ -52,7 +52,7 @@ actual fun getPlatformHandler(): PlatformHandler = remember { PlatformHandlerImp
 @OptIn(ExperimentalForeignApi::class)
 actual fun createShareFile(content: String): String {
     val tempDir = NSTemporaryDirectory()
-    val fileName = "vinsprit_share_${NSDate().timeIntervalSince1970}.txt"
+    val fileName = "corge_share_${NSDate().timeIntervalSince1970}.txt"
     val filePath = tempDir + fileName
 
     val bytes = content.encodeToByteArray()

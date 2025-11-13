@@ -19,3 +19,7 @@ actual val platformModule = module {
     single { PdfExporter() }
     single<ExportViewer> { IOSExportViewer() }
 }
+
+object KoinStarter {
+    fun start() = initKoin()
+}

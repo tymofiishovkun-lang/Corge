@@ -36,12 +36,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -184,7 +189,7 @@ fun DetailsScreen(
                         vm = vm,
                         onStartSession = onStartSession,
                         dateArg = dateArg,
-                        platformHandler = platformHandler // ✅
+                        platformHandler = platformHandler
                     )
                 }
 
@@ -297,7 +302,7 @@ private fun DetailsContent(
             PillButton(
                 text = "Share",
                 leadingIcon = shareIcon,
-                backgroundColor = Color.White.copy(alpha = 0.6f),
+                backgroundColor = Color.White,
                 modifier = Modifier.weight(1f),
                 onClick = {
                     val msg = st.message
@@ -307,12 +312,12 @@ private fun DetailsContent(
                         appendLine(msg.textEn)
                         if (!msg.whyItMatters.isNullOrBlank()) {
                             appendLine()
-                            appendLine("💡 Why it matters:")
+                            appendLine(" Why it matters:")
                             appendLine(msg.whyItMatters)
                         }
                         if (!msg.ritual.isNullOrBlank()) {
                             appendLine()
-                            appendLine("🕯 Ritual:")
+                            appendLine(" Ritual:")
                             appendLine(msg.ritual)
                         }
                     }
@@ -555,6 +560,9 @@ private fun NoteField(
     onValueChange: (String) -> Unit,
     onSave: () -> Unit
 ) {
+    val focusManager = LocalFocusManager.current
+    var isFocused by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -565,10 +573,9 @@ private fun NoteField(
             textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.Black),
             shape = RoundedCornerShape(18.dp),
             placeholder = {
-                Text(
-                    "No notes",
-                    color = Color(0xFF5B4A3E).copy(alpha = 0.6f)
-                )
+                if (!isFocused && value.isEmpty()) {
+                    Text("No notes", color = Color(0xFF5B4A3E).copy(alpha = 0.6f))
+                }
             },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color(0xFF703F03),
@@ -580,10 +587,16 @@ private fun NoteField(
             modifier = Modifier
                 .fillMaxWidth()
                 .border(1.dp, Color(0xFF703F03), RoundedCornerShape(18.dp))
+                .onFocusChanged { focusState ->
+                    isFocused = focusState.isFocused
+                }
         )
 
         Button(
-            onClick = onSave,
+            onClick = {
+                focusManager.clearFocus()
+                onSave()
+            },
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFF79B3D),

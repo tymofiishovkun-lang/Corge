@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -83,7 +84,6 @@ private fun aboutBackgroundFor(theme: AppTheme): Painter = when (theme) {
     AppTheme.KINTSUGI -> painterResource(Res.drawable.about_kintsugi_bg)
 }
 
-
 @Composable
 private fun AboutCorgeScreen(
     background: Painter,
@@ -94,11 +94,19 @@ private fun AboutCorgeScreen(
     bottomPadding: Dp = 28.dp,
     linkColor: Color = Color(0xFF7A5E45)
 ) {
-    Box(
-        modifier
+    BoxWithConstraints(
+        modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF6F0E2))
     ) {
+        val screenHeight = maxHeight
+
+        val adaptiveBottomPadding = when {
+            screenHeight < 650.dp -> bottomPadding + 60.dp
+            screenHeight < 800.dp -> bottomPadding + 30.dp
+            else -> bottomPadding
+        }
+
         Image(
             painter = background,
             contentDescription = null,
@@ -120,8 +128,7 @@ private fun AboutCorgeScreen(
             color = linkColor,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(WindowInsets.safeDrawing.asPaddingValues())
-                .padding(start = leftPadding, bottom = bottomPadding)
+                .padding(start = leftPadding, bottom = adaptiveBottomPadding)
         )
     }
 }

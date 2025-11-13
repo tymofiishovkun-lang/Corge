@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import corge.composeapp.generated.resources.Res
@@ -71,6 +72,7 @@ import org.app.corge.data.repository.ThemeRepository
 import org.app.corge.screens.home.HomeDimens
 import org.app.corge.screens.home.HomePalette
 import org.app.corge.screens.search.PillStyle
+import org.app.corge.screens.search.SearchTheme
 import org.app.corge.screens.search.SelectablePill
 import org.app.corge.screens.search.TypeFilter
 import org.app.corge.screens.settings.AppTheme
@@ -295,15 +297,23 @@ private fun FilterBlock(
 
                 Box(
                     modifier = Modifier
-                        .width(104.dp)
-                        .height(46.dp),
+                        .width(110.dp)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (selected) SearchTheme.Primary else SearchTheme.BgChip
+                        )
+                        .clickable { onToggleCat(c.id) },
                     contentAlignment = Alignment.Center
                 ) {
-                    SelectablePill(
-                        label = c.title,
-                        selected = selected,
-                        onClick = { onToggleCat(c.id) },
-                        selectedStyle = PillStyle.Tag
+                    Text(
+                        text = c.title,
+                        color = if (selected) Color.White else SearchTheme.Body,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }

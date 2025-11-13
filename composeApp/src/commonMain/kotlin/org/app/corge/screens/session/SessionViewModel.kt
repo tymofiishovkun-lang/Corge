@@ -44,32 +44,45 @@ class SessionViewModel(
     private var soundJob: Job? = null
     private var currentMsgId: Long? = null
 
-    fun load(messageId: Long) {
-        if (currentMsgId == messageId && ui !is UiState.Loading) return
+    fun load(messageId: Long, date: String) {
         currentMsgId = messageId
+        tickJob?.cancel()
+        soundJob?.cancel()
 
         viewModelScope.launch {
-            val msg = repo.getMessageById(messageId) ?: run {
-                ui = UiState.Error; return@launch
-            }
+            repo.sessionFlow(messageId, date).collect { session ->
+                val msg = repo.getMessageById(messageId) ?: return@collect
+                val steps = buildSteps(msg)
 
-            val steps = buildSteps(msg)
-
-            ui = UiState.Loaded(
-                message = msg,
-                steps = steps,
-                isBreathing = (msg.type == MessageType.BREATHING),
-                targetSec = msg.durationSeconds?.takeIf { it > 0 },
-                isPlayingSound = sound.isPlaying
-            )
-
-            soundJob?.cancel()
-            soundJob = viewModelScope.launch {
-                sound.isPlayingFlow.collect { playing ->
-                    val cur = ui as? UiState.Loaded ?: return@collect
-                    if (cur.isPlayingSound != playing)
-                        ui = cur.copy(isPlayingSound = playing)
+                if (session == null) {
+                    ui = UiState.Loaded(
+                        message = msg,
+                        steps = steps,
+                        isBreathing = (msg.type == MessageType.BREATHING),
+                        targetSec = msg.durationSeconds?.takeIf { it > 0 },
+                        isPlayingSound = sound.isPlaying,
+                        elapsedSec = 0,
+                        noteDraft = ""
+                    )
+                } else {
+                    ui = UiState.Loaded(
+                        message = msg,
+                        steps = steps,
+                        isBreathing = (msg.type == MessageType.BREATHING),
+                        targetSec = msg.durationSeconds?.takeIf { it > 0 },
+                        isPlayingSound = sound.isPlaying,
+                        elapsedSec = session.durationSeconds,
+                        noteDraft = session.note.orEmpty()
+                    )
                 }
+            }
+        }
+
+        soundJob = viewModelScope.launch {
+            sound.isPlayingFlow.collect { playing ->
+                val cur = ui as? UiState.Loaded ?: return@collect
+                if (cur.isPlayingSound != playing)
+                    ui = cur.copy(isPlayingSound = playing)
             }
         }
     }

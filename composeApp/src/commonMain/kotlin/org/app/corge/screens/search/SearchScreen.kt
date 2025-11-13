@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import corge.composeapp.generated.resources.Res
@@ -176,19 +178,44 @@ private fun FiltersContent(
             fontWeight = FontWeight.SemiBold
         )
 
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            TypeFilter.entries.forEach { t ->
-                val selected = ui.selectedType == t
-                SelectablePill(
-                    label = t.label(),
-                    selected = selected,
-                    onClick = { vm.toggleType(t) },
-                    selectedStyle = PillStyle.Primary
-                )
+            val maxWidthDp = maxWidth
+            val isCompact = maxWidthDp < 360.dp
+
+            val itemWidth = if (isCompact) (maxWidthDp - 48.dp) / 3 else Dp.Unspecified
+
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                listOf(TypeFilter.Phrase, TypeFilter.Breathing, TypeFilter.Task).forEach { t ->
+                    val selected = ui.selectedType == t
+                    val label = when (t) {
+                        TypeFilter.Phrase     -> "Phrase"
+                        TypeFilter.Breathing  -> "Breathing practice"
+                        TypeFilter.Task       -> "Task"
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .then(
+                                if (isCompact) Modifier.width(itemWidth)
+                                else Modifier.wrapContentWidth()
+                            )
+                            .height(46.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        SelectablePill(
+                            label = label,
+                            selected = selected,
+                            onClick = { vm.toggleType(t) },
+                            selectedStyle = PillStyle.Primary
+                        )
+                    }
+                }
             }
         }
 
@@ -209,28 +236,32 @@ private fun FiltersContent(
 
                 Box(
                     modifier = Modifier
-                        .width(104.dp)
-                        .height(46.dp),
+                        .width(110.dp)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (selected) SearchTheme.Primary else SearchTheme.BgChip
+                        )
+                        .clickable { vm.toggleCategory(key) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        SelectablePill(
-                            label = cat.title,
-                            selected = selected,
-                            onClick = { vm.toggleCategory(key) },
-                            selectedStyle = PillStyle.Tag
-                        )
-                    }
+                    Text(
+                        text = cat.title,
+                        color = if (selected) Color.White else SearchTheme.Body,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
 
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.Start),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             SquareCheckRow(
                 checked = ui.onlyUnread,
@@ -529,10 +560,10 @@ fun SelectablePill(
     }
     Box(
         Modifier
-            .clip(RoundedCornerShape(17.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(bg)
             .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 12.dp)
+            .padding(horizontal = 20.dp, vertical = 14.dp)
     ) { Text(label, color = fg, fontWeight = FontWeight.SemiBold) }
 }
 

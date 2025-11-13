@@ -1,0 +1,60 @@
+workflows:
+  ios-workflow:
+    name: iOS Build
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: Corge
+
+    environment:
+      java: 17
+      groups:
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: "com.corgessai.app"
+        XCODE_PROJECT: "iosApp.xcodeproj"
+        XCODE_SCHEME: "iosApp"
+        APP_ID: 6754844692
+
+        GRADLE_OPTS: "-Xmx4096m -Dfile.encoding=UTF-8"
+
+    scripts:
+      - name: Set up keychain
+        script: |
+          keychain initialize
+
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --create
+
+      - name: Add certificates
+        script: |
+          keychain add-certificates
+
+      - name: Set up code signing settings
+        script: |
+          cd $CM_BUILD_DIR/iosApp
+          xcode-project use-profiles
+
+      - name: Build KMM framework
+        script: |
+          cd $CM_BUILD_DIR
+          echo ">>> Building Kotlin Multiplatform framework"
+          ./gradlew :composeApp:packForXcode --no-daemon --stacktrace \
+            -Pkotlin.native.cacheKind=none \
+            -Pkotlin.native.binary.memoryModel=experimental
+
+      - name: Build iOS app
+        script: |
+          cd $CM_BUILD_DIR/iosApp
+          echo ">>> Building iOS .ipa with Xcode"
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - iosApp/build/ios/ipa/*.ipa
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_app_store: true

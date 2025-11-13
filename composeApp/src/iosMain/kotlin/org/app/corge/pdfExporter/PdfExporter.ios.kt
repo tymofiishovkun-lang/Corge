@@ -104,7 +104,7 @@ class IOSExportViewer : ExportViewer {
     }
 }
 
-actual fun exportFolderHint(): String = "Files → On My iPhone → YourApp"
+actual fun exportFolderHint(): String = "Files → On iPhone → Corge"
 
 private fun topViewController(): UIViewController? {
     val app = UIApplication.sharedApplication

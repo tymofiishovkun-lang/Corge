@@ -28,6 +28,7 @@ import corge.composeapp.generated.resources.Res
 import corge.composeapp.generated.resources.compose_multiplatform
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.app.corge.data.repository.SettingsRepository
 import org.app.corge.data.repository.ThemeRepository
 import org.app.corge.screens.Screen
 import org.app.corge.screens.about.AboutScreen
@@ -107,7 +108,8 @@ fun AnimatedNavHostCrossfade(
                     navigator.navigate(Screen.SearchResults.route)
                 },
                 viewModel = koinInject(),
-                themeRepo = koinInject()
+                themeRepo = koinInject(),
+                settingsRepository = koinInject()
             )
 
             route == Screen.Search.route -> SearchScreen(
