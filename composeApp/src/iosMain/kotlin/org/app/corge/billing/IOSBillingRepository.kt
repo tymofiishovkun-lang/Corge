@@ -7,6 +7,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import org.app.corge.data.model.Theme
 import org.app.corge.data.repository.ThemeRepository
 import platform.StoreKit.SKPayment
@@ -80,10 +81,14 @@ private class BillingDelegate(
 
     fun restorePurchases(): PurchaseResult =
         runBlocking {
-            suspendCancellableCoroutine { continuation ->
-                purchaseContinuations["restore"] = { result -> continuation.resume(result) {} }
-                SKPaymentQueue.defaultQueue().restoreCompletedTransactions()
-            }
+            withTimeoutOrNull(5000L) {
+                suspendCancellableCoroutine<PurchaseResult> { continuation ->
+                    purchaseContinuations["restore"] = { result ->
+                        continuation.resume(result) {}
+                    }
+                    SKPaymentQueue.defaultQueue().restoreCompletedTransactions()
+                }
+            } ?: PurchaseResult.Error("Restore cancelled or timed out")
         }
 
     override fun productsRequest(
