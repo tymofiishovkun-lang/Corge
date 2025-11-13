@@ -11,7 +11,7 @@ workflows:
       groups:
         - app_store_credentials
       vars:
-        BUNDLE_ID: "com.corgessai.app"
+        BUNDLE_ID: "com.corgesai.app"
         XCODE_PROJECT: "iosApp.xcodeproj"
         XCODE_SCHEME: "iosApp"
         APP_ID: 6754844692
