@@ -30,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.app.corge.data.repository.SettingsRepository
 import org.app.corge.data.repository.ThemeRepository
+import org.app.corge.screens.LoadingScreen
 import org.app.corge.screens.Screen
 import org.app.corge.screens.about.AboutScreen
 import org.app.corge.screens.detail.DetailsScreen
@@ -44,6 +45,8 @@ import org.app.corge.screens.session.SessionScreen
 import org.app.corge.screens.settings.SettingsScreen
 import org.app.corge.screens.settings.SoundPrefs
 import org.app.corge.screens.splash.SplashScreen
+import org.app.corge.screens.splash.SplashUiState
+import org.app.corge.screens.splash.SplashViewModel
 import org.app.corge.screens.stats.StatsScreen
 import org.app.corge.sound.SoundController
 import org.koin.compose.getKoin
@@ -56,29 +59,49 @@ fun App() {
     val soundPrefs: SoundPrefs = koinInject()
     val soundController: SoundController = koinInject()
     val themeRepo: ThemeRepository = koinInject()
+    val splashViewModel: SplashViewModel = koinInject()
+    val uiState by splashViewModel.uiState.collectAsState()
+
     val loopAssetName = "calm_loop.mp3"
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.Default) {
             themeRepo.initializeThemes()
         }
-
-        val enabled = soundPrefs.get()
-        withContext(Dispatchers.Main.immediate) {
-            if (enabled) {
-                if (!soundController.isPlaying)
-                    runCatching { soundController.startLoop(loopAssetName) }
-            } else {
-                if (soundController.isPlaying)
-                    runCatching { soundController.stop() }
-            }
-        }
     }
 
-    AnimatedNavHostCrossfade(
-        navigator = nav,
-        searchVm = koinInject()
-    )
+    when (val state = uiState) {
+
+        SplashUiState.Loading -> {
+            LoadingScreen()
+        }
+
+        is SplashUiState.ShowWeb -> {
+
+            LaunchedEffect("enter_web") {
+                if (soundController.isPlaying) {
+                    runCatching { soundController.stop() }
+                }
+            }
+
+            WebScreen(url = state.url)
+        }
+
+        SplashUiState.ShowApp -> {
+
+            LaunchedEffect("enter_app") {
+                val enabled = soundPrefs.get()
+                if (enabled && !soundController.isPlaying) {
+                    runCatching { soundController.startLoop(loopAssetName) }
+                }
+            }
+
+            AnimatedNavHostCrossfade(
+                navigator = nav,
+                searchVm = koinInject()
+            )
+        }
+    }
 }
 
 @Composable

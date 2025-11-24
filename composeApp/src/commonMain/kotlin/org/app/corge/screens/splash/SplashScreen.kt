@@ -71,13 +71,30 @@ fun SplashScreen(
         label = "scale"
     )
 
-    LaunchedEffect(Unit) {
-        startAnimation = true
-        delay(1800)
-        fadeOut = true
-        delay(600)
-        if (uiState.isFirstLaunch) onNavigate(Screen.Onboarding.route)
-        else onNavigate(Screen.Home.route)
+    LaunchedEffect(uiState) {
+        when (val s = uiState) {
+
+            SplashUiState.Loading -> Unit
+
+            is SplashUiState.ShowWeb -> {
+                startAnimation = true
+                delay(1800)
+                fadeOut = true
+                delay(600)
+                onNavigate(Screen.Web.route(s.url))
+            }
+
+            SplashUiState.ShowApp -> {
+                startAnimation = true
+                delay(1800)
+                fadeOut = true
+                delay(600)
+
+                val first = splashViewModel.isFirstLaunch()
+                if (first) onNavigate(Screen.Onboarding.route)
+                else onNavigate(Screen.Home.route)
+            }
+        }
     }
 
     Box(

@@ -3,7 +3,7 @@ package org.app.corge.screens
 sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
     data object Onboarding : Screen("onboarding")
-    data object Home : Screen("home")
+    data object Home : Screen("nav_home")
     data object Search : Screen("search")
     data object SearchResults : Screen("search_results")
     data class Details(val messageId: Long, val date: String? = null) :
@@ -41,4 +41,12 @@ sealed class Screen(val route: String) {
     data object Stats : Screen("stats")
     data object Setting : Screen("setting")
     data object About : Screen("about")
+    object Web : Screen("web") {
+
+        fun route(url: String): String =
+            "${this.route}:$url"
+
+        fun parse(route: String): String? =
+            route.removePrefix("${this.route}:")
+    }
 }

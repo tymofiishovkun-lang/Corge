@@ -15,7 +15,7 @@ import org.koin.dsl.module
 
 val viewModule = module {
     single { Settings() }
-    viewModelOf(::SplashViewModel)
+    single { SplashViewModel(get(), get()) }
     single { HomeViewModel(get(), get(), get(), get()) }
     single { SearchViewModel(get(), get()) }
     single { DetailsViewModel(get(), get()) }

@@ -4,6 +4,7 @@ import org.app.corge.billing.BillingRepository
 import org.app.corge.billing.IOSBillingRepository
 import org.app.corge.data.DatabaseDriverFactory
 import org.app.corge.data.IOSDatabaseDriverFactory
+import org.app.corge.network.NetworkViewModel
 import org.app.corge.pdfExporter.ExportViewer
 import org.app.corge.pdfExporter.IOSExportViewer
 import org.app.corge.pdfExporter.PdfExporter
@@ -18,6 +19,7 @@ actual val platformModule = module {
     single<BillingRepository> { IOSBillingRepository(get()) }
     single { PdfExporter() }
     single<ExportViewer> { IOSExportViewer() }
+    single { NetworkViewModel() }
 }
 
 object KoinStarter {

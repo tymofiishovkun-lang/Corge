@@ -125,7 +125,7 @@ class HomeViewModel(
             "Let the world flow through you without ever touching your peace.",
             "Everything you seek is already quietly resting inside you.",
             "Every moment that passes is already a precious gift of life.",
-            "One single step forward is already the start of your journey.",
+            "One single step nav_forward is already the start of your journey.",
             "Let go of what holds you, and you’ll become lighter than the wind.",
             "Breathe deeply — the world around you is in no hurry to change."
         ).shuffled(kotlin.random.Random(seed)).take(6)

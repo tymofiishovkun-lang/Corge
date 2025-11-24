@@ -2,6 +2,8 @@ package org.app.corge.di
 
 import org.app.corge.data.repository.CorgeRepository
 import org.app.corge.data.repository.CorgeRepositoryImpl
+import org.app.corge.data.repository.RemoteConfigRepository
+import org.app.corge.data.repository.RemoteConfigRepositoryImpl
 import org.app.corge.data.repository.SettingsRepository
 import org.app.corge.data.repository.SettingsRepositoryImpl
 import org.app.corge.data.repository.ThemeRepository
@@ -17,4 +19,5 @@ val repositoryModule = module {
     single<ThemeRepository> { ThemeRepositoryImpl(get()) }
     single<SoundPrefs> { SoundPrefsImpl(get()) }
     single { BuildExportPayloadUseCase(get()) }
+    single<RemoteConfigRepository> { RemoteConfigRepositoryImpl(get()) }
 }

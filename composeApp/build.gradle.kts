@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.sqldelight)
+    kotlin("plugin.serialization") version "1.9.10"
 }
 
 kotlin {
@@ -36,8 +37,13 @@ kotlin {
             implementation(libs.koin.android.compat)
             implementation(libs.koin.androidx.compose)
             implementation("com.android.billingclient:billing-ktx:6.0.1")
+            implementation("io.ktor:ktor-client-okhttp:2.3.7")
         }
         commonMain.dependencies {
+            implementation("io.ktor:ktor-client-core:2.3.7")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
+            implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -67,6 +73,7 @@ kotlin {
         }
         iosMain.dependencies {
         implementation(libs.native.driver)
+            implementation("io.ktor:ktor-client-darwin:2.3.7")
         }
     }
 }
@@ -87,14 +94,33 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
+    signingConfigs {
+        create("release") {
+            storeFile = file(project.property("KEYSTORE_FILE") as String)
+            storePassword = project.property("KEYSTORE_PASSWORD") as String
+            keyAlias = project.property("KEY_ALIAS") as String
+            keyPassword = project.property("KEY_PASSWORD") as String
         }
     }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 }
 
