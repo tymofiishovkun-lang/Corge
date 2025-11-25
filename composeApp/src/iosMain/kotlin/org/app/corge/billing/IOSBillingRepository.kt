@@ -53,6 +53,16 @@ private class BillingDelegate(
         fetchProducts()
     }
 
+    override fun paymentQueue(
+        queue: SKPaymentQueue,
+        shouldAddStorePayment: SKPayment,
+        forProduct: SKProduct
+    ): Boolean {
+        println("StoreKit Promotion → User tapped IAP in App Store: ${forProduct.productIdentifier}")
+
+        return true
+    }
+
     private fun fetchProducts() {
         val request = SKProductsRequest(productIdentifiers = themeProducts)
         request.delegate = this
