@@ -51,16 +51,24 @@ private class BillingDelegate(
     init {
         SKPaymentQueue.defaultQueue().addTransactionObserver(this)
         fetchProducts()
+
+        PromotionConnector.onPromotionReceived = { productId ->
+            println(" IOSBillingDelegate processing promotion → $productId")
+            scope.launch {
+                autoPurchaseFromPromotion(productId)
+            }
+        }
     }
 
-    override fun paymentQueue(
-        queue: SKPaymentQueue,
-        shouldAddStorePayment: SKPayment,
-        forProduct: SKProduct
-    ): Boolean {
-        println("StoreKit Promotion → User tapped IAP in App Store: ${forProduct.productIdentifier}")
-
-        return true
+    private suspend fun autoPurchaseFromPromotion(productId: String) {
+        val product = products[productId]
+        if (product == null) {
+            println(" Promotion product not loaded: $productId")
+            return
+        }
+        SKPaymentQueue.defaultQueue().addPayment(
+            SKPayment.paymentWithProduct(product)
+        )
     }
 
     private fun fetchProducts() {
